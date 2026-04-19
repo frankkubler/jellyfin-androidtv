@@ -10,6 +10,7 @@ import org.jellyfin.androidtv.ui.settings.screen.authentication.SettingsAuthenti
 import org.jellyfin.androidtv.ui.settings.screen.authentication.SettingsAuthenticationServerScreen
 import org.jellyfin.androidtv.ui.settings.screen.authentication.SettingsAuthenticationServerUserScreen
 import org.jellyfin.androidtv.ui.settings.screen.authentication.SettingsAuthenticationSortByScreen
+import org.jellyfin.androidtv.ui.settings.screen.authentication.SettingsUserPinSetupScreen
 import org.jellyfin.androidtv.ui.settings.screen.customization.SettingsCustomizationBackdropScreen
 import org.jellyfin.androidtv.ui.settings.screen.customization.SettingsCustomizationClockScreen
 import org.jellyfin.androidtv.ui.settings.screen.customization.SettingsCustomizationScreen
@@ -60,6 +61,7 @@ object Routes {
 	const val AUTHENTICATION_FROM_LOGIN = "/authentication+login"
 	const val AUTHENTICATION_SERVER = "/authentication/server/{serverId}"
 	const val AUTHENTICATION_SERVER_USER = "/authentication/server/{serverId}/user/{userId}"
+	const val AUTHENTICATION_SERVER_USER_PIN = "/authentication/server/{serverId}/user/{userId}/pin"
 	const val AUTHENTICATION_SORT_BY = "/authentication/sort-by"
 	const val AUTHENTICATION_AUTO_SIGN_IN = "/authentication/auto-sign-in"
 	const val CUSTOMIZATION = "/customization"
@@ -125,6 +127,12 @@ val routes = mapOf<String, RouteComposable>(
 	},
 	Routes.AUTHENTICATION_SERVER_USER to { context ->
 		SettingsAuthenticationServerUserScreen(
+			serverId = context.parameters["serverId"]?.toUUIDOrNull()!!,
+			userId = context.parameters["userId"]?.toUUIDOrNull()!!
+		)
+	},
+	Routes.AUTHENTICATION_SERVER_USER_PIN to { context ->
+		SettingsUserPinSetupScreen(
 			serverId = context.parameters["serverId"]?.toUUIDOrNull()!!,
 			userId = context.parameters["userId"]?.toUUIDOrNull()!!
 		)

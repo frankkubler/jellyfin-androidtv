@@ -4,7 +4,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -13,6 +15,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.jellyfin.androidtv.R
 import org.jellyfin.androidtv.auth.repository.AuthenticationRepository
+import org.jellyfin.androidtv.auth.repository.PinRepository
 import org.jellyfin.androidtv.auth.repository.ServerRepository
 import org.jellyfin.androidtv.auth.repository.ServerUserRepository
 import org.jellyfin.androidtv.ui.base.Icon
@@ -20,6 +23,7 @@ import org.jellyfin.androidtv.ui.base.Text
 import org.jellyfin.androidtv.ui.base.list.ListButton
 import org.jellyfin.androidtv.ui.base.list.ListSection
 import org.jellyfin.androidtv.ui.navigation.LocalRouter
+import org.jellyfin.androidtv.ui.settings.Routes
 import org.jellyfin.androidtv.ui.settings.composable.SettingsColumn
 import org.koin.compose.koinInject
 import java.util.UUID
@@ -31,6 +35,7 @@ fun SettingsAuthenticationServerUserScreen(serverId: UUID, userId: UUID) {
 	val serverRepository = koinInject<ServerRepository>()
 	val serverUserRepository = koinInject<ServerUserRepository>()
 	val authenticationRepository = koinInject<AuthenticationRepository>()
+	val pinRepository = koinInject<PinRepository>()
 
 	LaunchedEffect(serverRepository) { serverRepository.loadStoredServers() }
 
@@ -39,6 +44,10 @@ fun SettingsAuthenticationServerUserScreen(serverId: UUID, userId: UUID) {
 	}.collectAsState(null)
 
 	val user = remember(server) { server?.let(serverUserRepository::getStoredServerUsers)?.find { user -> user.id == userId } }
+
+	var hasPin by remember(user) {
+		mutableStateOf(pinRepository.hasPin(serverId, userId))
+	}
 
 	SettingsColumn {
 		item {
@@ -74,6 +83,52 @@ fun SettingsAuthenticationServerUserScreen(serverId: UUID, userId: UUID) {
 					}
 				}
 			)
+		}
+
+		if (!hasPin) {
+			item {
+				ListButton(
+					leadingContent = { Icon(painterResource(R.drawable.ic_lock), contentDescription = null) },
+					headingContent = { Text(stringResource(R.string.pin_setup)) },
+					captionContent = { Text(stringResource(R.string.pin_setup_description)) },
+					onClick = {
+						router.push(
+							Routes.AUTHENTICATION_SERVER_USER_PIN
+								.replace("{serverId}", serverId.toString())
+								.replace("{userId}", userId.toString())
+						)
+					}
+				)
+			}
+		} else {
+			item {
+				ListButton(
+					leadingContent = { Icon(painterResource(R.drawable.ic_lock), contentDescription = null) },
+					headingContent = { Text(stringResource(R.string.pin_change)) },
+					captionContent = { Text(stringResource(R.string.pin_change_description)) },
+					onClick = {
+						router.push(
+							Routes.AUTHENTICATION_SERVER_USER_PIN
+								.replace("{serverId}", serverId.toString())
+								.replace("{userId}", userId.toString())
+						)
+					}
+				)
+			}
+
+			item {
+				ListButton(
+					leadingContent = { Icon(painterResource(R.drawable.ic_delete), contentDescription = null) },
+					headingContent = { Text(stringResource(R.string.pin_remove)) },
+					captionContent = { Text(stringResource(R.string.pin_remove_description)) },
+					onClick = {
+						lifecycleScope.launch {
+							pinRepository.removePin(serverId, userId)
+							hasPin = false
+						}
+					}
+				)
+			}
 		}
 	}
 }
