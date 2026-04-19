@@ -93,9 +93,8 @@ fun SettingsAuthenticationServerUserScreen(serverId: UUID, userId: UUID) {
 					captionContent = { Text(stringResource(R.string.pin_setup_description)) },
 					onClick = {
 						router.push(
-							Routes.AUTHENTICATION_SERVER_USER_PIN
-								.replace("{serverId}", serverId.toString())
-								.replace("{userId}", userId.toString())
+							Routes.AUTHENTICATION_SERVER_USER_PIN,
+							mapOf("serverId" to serverId.toString(), "userId" to userId.toString())
 						)
 					}
 				)
@@ -108,9 +107,8 @@ fun SettingsAuthenticationServerUserScreen(serverId: UUID, userId: UUID) {
 					captionContent = { Text(stringResource(R.string.pin_change_description)) },
 					onClick = {
 						router.push(
-							Routes.AUTHENTICATION_SERVER_USER_PIN
-								.replace("{serverId}", serverId.toString())
-								.replace("{userId}", userId.toString())
+							Routes.AUTHENTICATION_SERVER_USER_PIN,
+							mapOf("serverId" to serverId.toString(), "userId" to userId.toString())
 						)
 					}
 				)
