@@ -22,7 +22,7 @@
             android:layout_height="48dp"
             android:layout_gravity="center_horizontal"
             android:src="@drawable/ic_lock"
-            android:tint="?android:attr/textColorPrimary"
+            app:tint="?android:attr/textColorPrimary"
             android:contentDescription="@null" />
 
         <TextView
