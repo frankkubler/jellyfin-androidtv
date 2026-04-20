@@ -39,6 +39,9 @@ fun SettingsUserPinSetupScreen(serverId: UUID, userId: UUID) {
 	var confirmPin by remember { mutableStateOf("") }
 	var errorMessage by remember { mutableStateOf<String?>(null) }
 
+	val errorPinLength = stringResource(R.string.pin_length_error)
+	val errorPinMismatch = stringResource(R.string.pin_setup_mismatch)
+
 	SettingsColumn {
 		item {
 			ListSection(
@@ -113,8 +116,8 @@ fun SettingsUserPinSetupScreen(serverId: UUID, userId: UUID) {
 				headingContent = { Text(stringResource(R.string.pin_save)) },
 				onClick = {
 					when {
-						newPin.length != 4 -> errorMessage = "PIN must be exactly 4 digits"
-						newPin != confirmPin -> errorMessage = "PINs do not match"
+						newPin.length != 4 -> errorMessage = errorPinLength
+						newPin != confirmPin -> errorMessage = errorPinMismatch
 						else -> {
 							lifecycleScope.launch {
 								pinRepository.setPin(serverId, userId, newPin)
