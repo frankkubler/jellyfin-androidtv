@@ -80,6 +80,8 @@ class MutablePlayerState(
 	private val _scrubbing = MutableStateFlow(false)
 	override val scrubbing: StateFlow<Boolean> get() = _scrubbing.asStateFlow()
 
+	private var wasPlayingBeforeScrubbing = false
+
 	override val positionInfo: PositionInfo
 		get() = backendService.backend?.getPositionInfo() ?: PositionInfo.EMPTY
 
@@ -141,8 +143,14 @@ class MutablePlayerState(
 	}
 
 	override fun setScrubbing(scrubbing: Boolean) {
+		if (scrubbing) {
+			wasPlayingBeforeScrubbing = _playState.value == PlayState.PLAYING
+		}
 		_scrubbing.value = scrubbing
 		backendService.backend?.setScrubbing(scrubbing)
+		if (!scrubbing && wasPlayingBeforeScrubbing) {
+			backendService.backend?.play()
+		}
 	}
 
 	override fun setSpeed(speed: Float) {
