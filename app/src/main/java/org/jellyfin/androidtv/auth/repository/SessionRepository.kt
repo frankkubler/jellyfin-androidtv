@@ -56,6 +56,7 @@ class SessionRepositoryImpl(
 	private val userRepository: UserRepository,
 	private val serverRepository: ServerRepository,
 	private val telemetryPreferences: TelemetryPreferences,
+	private val pinRepository: PinRepository,
 ) : SessionRepository {
 	private val currentSessionMutex = Mutex()
 	private val _currentSession = MutableStateFlow<Session?>(null)
@@ -75,11 +76,17 @@ class SessionRepositoryImpl(
 			when {
 				alwaysAuthenticate -> destroyCurrentSession()
 				autoLoginBehavior == DISABLED -> destroyCurrentSession()
-				autoLoginBehavior == LAST_USER && !destroyOnly -> setCurrentSession(createLastUserSession())
+				autoLoginBehavior == LAST_USER && !destroyOnly -> {
+					if (isLastUserPinProtected()) destroyCurrentSession()
+					else setCurrentSession(createLastUserSession())
+				}
 				autoLoginBehavior == SPECIFIC_USER && !destroyOnly -> {
 					val serverId = authenticationPreferences[AuthenticationPreferences.autoLoginServerId].toUUIDOrNull()
 					val userId = authenticationPreferences[AuthenticationPreferences.autoLoginUserId].toUUIDOrNull()
-					if (serverId != null && userId != null) setCurrentSession(createUserSession(serverId, userId))
+					if (serverId != null && userId != null) {
+						if (pinRepository.hasPin(serverId, userId)) destroyCurrentSession()
+						else setCurrentSession(createUserSession(serverId, userId))
+					}
 				}
 			}
 
@@ -172,6 +179,13 @@ class SessionRepositoryImpl(
 
 		return if (lastUserId != null && lastServerId != null) createUserSession(lastServerId, lastUserId)
 		else null
+	}
+
+	private fun isLastUserPinProtected(): Boolean {
+		val lastUserId = authenticationPreferences[AuthenticationPreferences.lastUserId].toUUIDOrNull()
+		val lastServerId = authenticationPreferences[AuthenticationPreferences.lastServerId].toUUIDOrNull()
+		return if (lastUserId != null && lastServerId != null) pinRepository.hasPin(lastServerId, lastUserId)
+		else false
 	}
 
 	private fun createUserSession(serverId: UUID, userId: UUID): Session? {

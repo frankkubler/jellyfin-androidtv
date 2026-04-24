@@ -32,6 +32,7 @@ import org.jellyfin.androidtv.auth.model.ServerUnavailableState
 import org.jellyfin.androidtv.auth.model.ServerVersionNotSupported
 import org.jellyfin.androidtv.auth.model.User
 import org.jellyfin.androidtv.auth.repository.AuthenticationRepository
+import org.jellyfin.androidtv.auth.repository.PinRepository
 import org.jellyfin.androidtv.auth.repository.ServerRepository
 import org.jellyfin.androidtv.auth.repository.ServerUserRepository
 import org.jellyfin.androidtv.data.service.BackgroundService
@@ -54,6 +55,7 @@ class ServerFragment : Fragment() {
 	private val markdownRenderer: MarkdownRenderer by inject()
 	private val authenticationRepository: AuthenticationRepository by inject()
 	private val serverUserRepository: ServerUserRepository by inject()
+	private val pinRepository: PinRepository by inject()
 	private val backgroundService: BackgroundService by inject()
 	private var _binding: FragmentServerBinding? = null
 	private val binding get() = _binding!!
@@ -72,31 +74,39 @@ class ServerFragment : Fragment() {
 
 		val userAdapter = UserAdapter(requireContext(), server, startupViewModel, authenticationRepository, serverUserRepository)
 		userAdapter.onItemPressed = { user ->
-			startupViewModel.authenticate(server, user).onEach { state ->
-				when (state) {
-					// Ignored states
-					AuthenticatingState -> Unit
-					AuthenticatedState -> Unit
-					// Actions
-					RequireSignInState -> navigateFragment<UserLoginFragment>(bundleOf(
-						UserLoginFragment.ARG_SERVER_ID to server.id.toString(),
-						UserLoginFragment.ARG_USERNAME to user.name,
-					))
-					// Errors
-					ServerUnavailableState,
-					is ApiClientErrorLoginState -> Toast.makeText(context, R.string.server_connection_failed, Toast.LENGTH_LONG).show()
+			if (user is PrivateUser && pinRepository.hasPin(server.id, user.id)) {
+				navigateFragment<UserPinFragment>(bundleOf(
+					UserPinFragment.ARG_SERVER_ID to server.id.toString(),
+					UserPinFragment.ARG_USER_ID to user.id.toString(),
+					UserPinFragment.ARG_USER_NAME to user.name,
+				))
+			} else {
+				startupViewModel.authenticate(server, user).onEach { state ->
+					when (state) {
+						// Ignored states
+						AuthenticatingState -> Unit
+						AuthenticatedState -> Unit
+						// Actions
+						RequireSignInState -> navigateFragment<UserLoginFragment>(bundleOf(
+							UserLoginFragment.ARG_SERVER_ID to server.id.toString(),
+							UserLoginFragment.ARG_USERNAME to user.name,
+						))
+						// Errors
+						ServerUnavailableState,
+						is ApiClientErrorLoginState -> Toast.makeText(context, R.string.server_connection_failed, Toast.LENGTH_LONG).show()
 
-					is ServerVersionNotSupported -> Toast.makeText(
-						context,
-						getString(
-							R.string.server_issue_outdated_version,
-							state.server.version,
-							ServerRepository.recommendedServerVersion.toString()
-						),
-						Toast.LENGTH_LONG
-					).show()
-				}
-			}.launchIn(lifecycleScope)
+						is ServerVersionNotSupported -> Toast.makeText(
+							context,
+							getString(
+								R.string.server_issue_outdated_version,
+								state.server.version,
+								ServerRepository.recommendedServerVersion.toString()
+							),
+							Toast.LENGTH_LONG
+						).show()
+					}
+				}.launchIn(lifecycleScope)
+			}
 		}
 		binding.users.adapter = userAdapter
 
